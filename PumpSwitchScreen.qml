@@ -16,7 +16,7 @@ Screen {
 
 	Text {
 		id: text1
-		text: "Deze app is in staat een slimme stekker met de verwarming mee te schakelen. Dit is bijvoorbeeld handig om de vloerverwarmingspomp te schakelen. De pomp zal draaien als het systeem verwarmd. Als de pomp 24 uur niet heeft gedraaid dan zal de pomp 10 minuten draaien om lange stailstand en vastlopen te voorkomen."
+		text: "Deze app is in staat een slimme stekker met de verwarming mee te schakelen. Dit is bijvoorbeeld handig om de vloerverwarmingspomp te schakelen. De pomp zal draaien als het systeem verwarmd plus een nadraaitijd na het verwarmen (instelbaar). Als de pomp 24 uur (instelbaar) niet heeft gedraaid dan zal de pomp 10 minuten (instelbaar) draaien om lange stailstand en vastlopen te voorkomen."
 		wrapMode: Text.WordWrap
 		width : isNxt? parent.width - 24 : parent.width - 18
 
@@ -48,7 +48,6 @@ Screen {
 			topMargin: isNxt ? 20:16
 		}
 	}
-
 }
 
 

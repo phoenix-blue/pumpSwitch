@@ -10,22 +10,6 @@ Tile {
 	property int currentFrame: 1
 	
 	
-	onVisibleChanged : {
-        console.log("visible changed")
-        if (visible) {
-		    console.log("animation switched on")
-			if(runPump){
-				animationTimer.running = true
-			}else{
-				animationTimer.running = false
-			}
-		}else{
-			animationTimer.running = false
-			console.log("animation switched off")
-		}
-    }
-	
-
 	Component.onCompleted: {
 		app.pumpUpdated.connect(updateTile);
 	}
@@ -79,7 +63,8 @@ Tile {
 
 	Timer {
 		id: animationTimer
-		interval: 200
+		interval: 400
+		running:runPump
 		repeat: true
 		onTriggered: 
 			if(currentFrame==4){currentFrame=1}else{currentFrame++}
