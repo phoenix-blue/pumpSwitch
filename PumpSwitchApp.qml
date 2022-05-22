@@ -23,8 +23,12 @@ App {
 
 	property string 	thermostatUuid
 	property bool		runPump: false
-	property int		pumpInterval: 24*60*60*1000 // 24 hrs
-	property int		runDuration: 10*60*1000 // 10 mins
+	property int		oldPumpstatus: 0
+	property int		pumpInterval: 24 // hours
+	property int		runDuration: 10 //  mins
+	
+	property int		offDelay: 5 // mins
+	
 	property string		switchIP: "192.168.1.100"
 	property bool 		tasmotaMode: true
 	property string  	selecteddeviceuuid : "aaaaaaa-aaaa-1111-2222-ccccccc"
@@ -60,6 +64,9 @@ App {
 	
 	property variant pumpSwitchSettingsJson : {
 		'tasmotaMode': "",
+		'pumpInterval': "",
+		'runDuration': "",
+		'offDelay': "",
 		'selectedtasmotaIP': "",
 		'selecteddevicename': "",
 		'selecteddeviceuuid': ""	,	
@@ -82,6 +89,9 @@ App {
 				}else{
 					tasmotaMode = false
 				}
+				offDelay = pumpSwitchSettingsJson['offDelay']
+				runDuration = pumpSwitchSettingsJson['runDuration']
+				pumpInterval = pumpSwitchSettingsJson['pumpInterval']
 				selectedtasmotaIP = pumpSwitchSettingsJson['selectedtasmotaIP']
 				selecteddevicename = pumpSwitchSettingsJson['selecteddevicename']
 				selecteddeviceuuid = pumpSwitchSettingsJson['selecteddeviceuuid']
@@ -117,17 +127,30 @@ App {
 		case 0: 
 			//off
 			if (debugOutput) console.log("*********pumpSwitch runPump requesting off")
-			if(!runTimer.running){setPumpStatus(false)}
+			//if the pump was running because of heating, give some time to switch off the pump and use all heat from the pipes.
+			if ((oldPumpstatus == 1 || oldPumpstatus == 3) &  !runTimer.running ){offDelayTimer.running = true}
+			oldPumpstatus = 0
 			break;
 		case 1:
 			//heating
 			if (debugOutput) console.log("*********pumpSwitch requesting on")
 			setPumpStatus(true)
+			oldPumpstatus = 1
+			break;
+		case 2:
+			//water
+			break;
+		case 3:
+			//preheating
+			if (debugOutput) console.log("*********pumpSwitch requesting on")
+			setPumpStatus(true)
+			oldPumpstatus = 1
 			break;
 		case 4:
 			//Error
 			if (debugOutput) console.log("*********pumpSwitch runPump requesting off")
 			if(!runTimer.running){setPumpStatus(false)}
+			oldPumpstatus = 4
 			break;
 		}
 	}
@@ -149,7 +172,6 @@ App {
 				msg.addArgument("NewTargetValue", "1");
 				bxtClient.sendMsg(msg);
 			}
-			
 		}else{
 			runPump = false
 			intervalTimer.running = true
@@ -184,8 +206,19 @@ App {
 	}
 	
 	Timer {
+		id: offDelayTimer   //delay after heating is switched off
+		interval: offDelay*60*1000
+		repeat: false
+		running: false
+		triggeredOnStart: false
+		onTriggered: {
+			setPumpStatus(false)
+        }
+    }
+	
+	Timer {
 		id: runTimer   //time that the pump is running
-		interval: runDuration
+		interval: runDuration*60*1000
 		repeat: false
 		running: false
 		triggeredOnStart: false
@@ -197,7 +230,7 @@ App {
 	
 	Timer {
 		id: intervalTimer   //time between running the pump
-		interval: pumpInterval
+		interval: pumpInterval*60*60*1000
 		repeat: false
 		running: false
 		triggeredOnStart: false
@@ -218,11 +251,12 @@ App {
 		}
  		var pumpSwitchSettingsJson = {
 			"tasmotaMode" : temptasmotaMode,
+			"offDelay" : offDelay,
+			"runDuration" : runDuration,
+			"pumpInterval" : pumpInterval,
 			"selectedtasmotaIP" : selectedtasmotaIP,
 			"selecteddevicename" : selecteddevicename,
 			"selecteddeviceuuid" : selecteddeviceuuid
-			
-			
 		}
   		pumpSwitchSettingsFile.write(JSON.stringify(pumpSwitchSettingsJson))
 	}

@@ -1,3 +1,7 @@
+1.0.2
+- slower pump symbol, off delay added, times in configscreen
+
+
 1.0.1
 - zwave switch named to pump switch added
 

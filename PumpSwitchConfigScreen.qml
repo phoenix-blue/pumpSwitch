@@ -13,10 +13,17 @@ Screen {
 	property string  	tempselectedtasmotaIP:app.selectedtasmotaIP
 	property variant    plugsArray : []
 	property variant    uuidArray : []
+	property bool 		firstShown: true;
 	
 	onShown: {
-		addCustomTopRightButton("Opslaan")
+		if (firstShown) {
+			intervalLabel.inputText = app.pumpInterval
+			runTimeLabel.inputText = app.runDuration
+			offDelayLabel.inputText = app.offDelay
+			firstShown = false;
+		}
 		getPlugNames()
+		addCustomTopRightButton("Opslaan")
 		tasmotaIPlabel.inputText = tempselectedtasmotaIP
 		enableTasmotaToggle.isSwitchedOn = temptasmotaMode;
 	}
@@ -26,6 +33,10 @@ Screen {
 		app.selecteddevicename = tempselecteddevicename
 		app.selectedtasmotaIP = tempselectedtasmotaIP
 		app.tasmotaMode = temptasmotaMode
+		
+		app.pumpInterval =intervalLabel.inputText
+		app.runDuration =	runTimeLabel.inputText 
+		app.offDelay = offDelayLabel.inputText
 		app.saveSettings()
 		hide()
 	}
@@ -83,20 +94,68 @@ Screen {
 		doc.setRequestHeader("Content-Encoding", "UTF-8");
 		doc.send();
 	}
+	
+	EditTextLabel {
+		id: intervalLabel
+		width: parent.width - 100
+		height: 40		
+		labelFontSize: isNxt ? 18:14
+		labelFontFamily: qfont.semiBold.name
+		leftTextAvailableWidth:  isNxt ? 600:480
+		leftText: "Minimale interval voor de pomp (bij niet verwarmen) (uren): "
+		inputHints: Qt.ImhDigitsOnly
+		anchors {
+			top:parent.top
+			left:parent.left
+			topMargin: isNxt ? 10:8
+			leftMargin: isNxt ? 20:16
+		}
+	}
+	
+	EditTextLabel {
+		id: runTimeLabel
+		width: parent.width - 100
+		height: 40		
+		labelFontSize: isNxt ? 18:14
+		labelFontFamily: qfont.semiBold.name
+		leftTextAvailableWidth:  isNxt ? 600:480
+		leftText: "Tijd dat de pomp dan moet draaien (bij niet verwarmen)(minuten): "
+		inputHints: Qt.ImhDigitsOnly
+		anchors {
+			top:intervalLabel.bottom
+			left:intervalLabel.left
+			topMargin: isNxt ? 10:8
+		}
+	}
+	
 
+	EditTextLabel {
+		id: offDelayLabel
+		width: parent.width - 100
+		height: 40		
+		labelFontSize: isNxt ? 18:14
+		labelFontFamily: qfont.semiBold.name
+		leftTextAvailableWidth:  isNxt ? 600:480
+		leftText: "Uitschakelvertraging na verwarmen (minuten): "
+		inputHints: Qt.ImhDigitsOnly
+		anchors {
+			top:runTimeLabel.bottom
+			left:intervalLabel.left
+			topMargin: isNxt ? 10:8
+		}
+	}
 
 	Text {
 		id: text1
-		text: "Fibaro "
+		text: "Z-wave stekker "
 		font {
 			family: qfont.semiBold.name
 			pixelSize: isNxt ? 18:14
 		}
 		anchors {
-			top:parent.top
-			left:parent.left
-			topMargin: isNxt ? 20:16
-			leftMargin: isNxt ? 20:16
+			top:offDelayLabel.bottom
+			left:offDelayLabel.left
+			topMargin: isNxt ? 10:8
 		}
 	}
 	
@@ -136,15 +195,15 @@ Screen {
 	EditTextLabel4421 {
 		id: tasmotaIPlabel
 		width: (parent.width*0.4) - 40		
-		height: 30		
-		leftTextAvailableWidth: 200
+		leftTextAvailableWidth:  isNxt ? 200:160
 		leftText: "Tasmota IP adress"
+		height: 40		
 		labelFontSize: isNxt ? 18:14
 		labelFontFamily: qfont.semiBold.name
 		anchors {
 			left: text1.left
 			top: text1.bottom
-			topMargin: 30
+			topMargin: isNxt ? 10:8
 		}
 		onClicked: {
 			qkeyboard.open("Tasmota IP adress", tasmotaIPlabel.inputText, saveTasmotaIP)
@@ -156,7 +215,7 @@ Screen {
 	Rectangle{
 		id: listviewContainer1
 		width: isNxt ? parent.width/2 -100 : parent.width/2 - 80
-		height: isNxt ? 220 : 190
+		height: isNxt ? 140 : 112
 		color: "white"
 		radius: isNxt ? 5 : 4
 		border.color: "black"
@@ -164,7 +223,7 @@ Screen {
 		anchors {
 			left: text1.left
 			top: text1.bottom
-			topMargin: 30
+			topMargin: isNxt ?10:8
 		}
 
 		Component {
@@ -204,7 +263,7 @@ Screen {
 		visible: !temptasmotaMode
 	}
 	
-IconButton {
+	IconButton {
 		id: upButton
 		anchors {
 			top: listviewContainer1.top
@@ -250,7 +309,7 @@ IconButton {
 		buttonText:  "Selecteer deze stekker"
 		anchors {
 			top: listviewContainer1.bottom
-			topMargin:isNxt ? 20 : 16
+			topMargin:isNxt ? 10:8
 			left: text1.left
 			}
 		onClicked: {
@@ -273,7 +332,7 @@ IconButton {
 		}
 		anchors {
 			top:addFibaro.bottom
-			topMargin:isNxt ? 20 : 16
+			topMargin:isNxt ? 10:8
 			left: text1.left
 		}
 		visible: !temptasmotaMode
@@ -288,7 +347,7 @@ IconButton {
 		}
 		anchors {
 			top:text10.bottom
-			topMargin:isNxt ? 12 : 16
+			topMargin:isNxt ? 10:8
 			left: text1.left
 		}
 		visible: !temptasmotaMode
@@ -303,9 +362,10 @@ IconButton {
 		}
 		anchors {
 			top:text11.bottom
-			topMargin:isNxt ? 12 : 16
+			topMargin:isNxt ? 10:8
 			left: text1.left
 		}
+		visible: !temptasmotaMode
 	}
 	
 	
