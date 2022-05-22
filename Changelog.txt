@@ -1,3 +1,6 @@
+1.0.1
+- zwave switch named to pump switch added
+
 1.0.0
 - first production release
 
