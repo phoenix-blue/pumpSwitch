@@ -45,7 +45,7 @@ Screen {
 						var devicesfile = doc.responseText;
 						var devices = devicesfile.split('<device>')
 						for(var x0 = 0;x0 < devices.length;x0++){
-							if(devices[x0].indexOf('FGWPF102')>0 || devices[x0].indexOf('ZMNHYD1')>0 ||devices[x0].indexOf('FGWP011')>0 ||devices[x0].indexOf('NAS_WR01Z')>0 ||devices[x0].indexOf('NAS_WR01ZE')>0 ||devices[x0].indexOf('NAS_WR02ZE')>0 ||devices[x0].indexOf('EMPOWER')>0 ||devices[x0].indexOf('EM6550_v1')>0)
+							if((devices[x0].toUpperCase().indexOf('PUMP')>0 & devices[x0].toUpperCase().indexOf('SWITCH')>0) || devices[x0].indexOf('FGWPF102')>0 || devices[x0].indexOf('ZMNHYD1')>0 ||devices[x0].indexOf('FGWP011')>0 ||devices[x0].indexOf('NAS_WR01Z')>0 ||devices[x0].indexOf('NAS_WR01ZE')>0 ||devices[x0].indexOf('NAS_WR02ZE')>0 ||devices[x0].indexOf('EMPOWER')>0 ||devices[x0].indexOf('EM6550_v1')>0)
 							{
 								//<uuid>f9a24cbd-53f6-4212-80e6-38dc543b5804</uuid>
 								// <type>FGWP011</type>
@@ -293,6 +293,21 @@ IconButton {
 		}
 		visible: !temptasmotaMode
 	}
+	
+	Text {
+		id: text12
+		text: "Stekker niet zichtbaar in de lijst? Hernoem hem naar Pump Switch en probeer opnieuw."
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 18:14
+		}
+		anchors {
+			top:text11.bottom
+			topMargin:isNxt ? 12 : 16
+			left: text1.left
+		}
+	}
+	
 	
 
 }
