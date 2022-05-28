@@ -49,7 +49,8 @@ Tile {
 
 	Text {
 		id: txtPumpStatus
-		text: runPump? "Aan" : "Uit"
+		text: app.pumpStatus
+		//text: runPump? "Aan" : "Uit"
 		color: dimmableColors.tileTextColor
 		anchors {
 			horizontalCenter: parent.horizontalCenter
