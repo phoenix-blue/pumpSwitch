@@ -267,8 +267,7 @@ App {
 	
 	Timer {
 		id: offDelayTimer   //delay after heating is switched off
-		//interval: offDelay*60*1000
-		interval: 5000
+		interval: offDelay*60*1000
 		repeat: false
 		running: false
 		triggeredOnStart: false
