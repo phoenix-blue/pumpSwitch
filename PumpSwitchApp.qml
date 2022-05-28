@@ -22,18 +22,27 @@ App {
 	property url 		thumbnailIcon: "qrc:/tsc/refresh.png"
 
 	property string 	thermostatUuid
+	property string 	pumpStatus : "Auto"
+	property bool		timerRunning: false
 	property bool		runPump: false
-	property int		oldPumpstatus: 0
+	property bool		manualOn: false
+	property bool		manualOff: false
+	property bool		automaticMode: true
+	property int		oldPumpstatus: -1
 	property int		pumpInterval: 24 // hours
 	property int		runDuration: 10 //  mins
-	
 	property int		offDelay: 5 // mins
+	
+	
+	property string 	nextSwitchTime
 	
 	property string		switchIP: "192.168.1.100"
 	property bool 		tasmotaMode: true
 	property string  	selecteddeviceuuid : "aaaaaaa-aaaa-1111-2222-ccccccc"
 	property string  	selecteddevicename : "pump switch"
 	property string  	selectedtasmotaIP : "192.168.1.100"
+	
+	property bool 		firstStart: true
 
 	property variant thermInfo : {
 		'currentTemp': 0,
@@ -98,7 +107,12 @@ App {
 				if (debugOutput) console.log("*********pumpSwitch selecteddeviceuuid : " + selecteddeviceuuid)
 				
 		} catch(e) {
-		} 
+		}
+		
+		if(firstStart){
+			pumpStatus = "Eerste start"
+			//setPumpStatus(true)
+		}
 	}
 
 
@@ -107,7 +121,7 @@ App {
 		registry.registerWidget("screen", pumpSwitchConfigScreenUrl, this, "pumpSwitchConfigScreen")
 		registry.registerWidget("screen", pumpSwitchScreenUrl, this, "pumpSwitchScreen")
 	}
- 
+	
 
 	function setPumpStatusfromThermostat(node) {
 		var tempInfo = thermInfo
@@ -128,14 +142,20 @@ App {
 			//off
 			if (debugOutput) console.log("*********pumpSwitch runPump requesting off")
 			//if the pump was running because of heating, give some time to switch off the pump and use all heat from the pipes.
-			if ((oldPumpstatus == 1 || oldPumpstatus == 3) &  !runTimer.running ){offDelayTimer.running = true}
+			if ((oldPumpstatus == 1 || oldPumpstatus == 3) & !manualOn & !runTimer.running ){offDelayTimer.running = true;pumpStatus = "Naloop"}
+			if (oldPumpstatus == -1  & !manualOn & !runTimer.running ){setPumpStatus(false);pumpStatus = "Auto uit"}
+			
 			oldPumpstatus = 0
 			break;
 		case 1:
 			//heating
 			if (debugOutput) console.log("*********pumpSwitch requesting on")
-			setPumpStatus(true)
-			oldPumpstatus = 1
+			if(!manualOff){
+				pumpStatus = "Auto aan"
+				setPumpStatus(true)
+				oldPumpstatus = 1
+			}
+
 			break;
 		case 2:
 			//water
@@ -143,24 +163,61 @@ App {
 		case 3:
 			//preheating
 			if (debugOutput) console.log("*********pumpSwitch requesting on")
-			setPumpStatus(true)
-			oldPumpstatus = 1
+			if(!manualOff){
+				pumpStatus = "Auto aan"
+				setPumpStatus(true)
+				oldPumpstatus = 3
+			}
 			break;
 		case 4:
 			//Error
 			if (debugOutput) console.log("*********pumpSwitch runPump requesting off")
 			if(!runTimer.running){setPumpStatus(false)}
 			oldPumpstatus = 4
+			pumpStatus = "Fout"
 			break;
 		}
 	}
 	
+
+
+	function manualOnClicked() {
+			pumpStatus = "Hand aan"
+			manualOn = true
+			manualOff = false
+			automaticMode = false
+			setPumpStatus(true)
+	}
+
+	function manualOffClicked() {
+			pumpStatus = "Hand uit"
+			manualOn = false
+			manualOff = true
+			automaticMode = false
+			setPumpStatus(false)
+	}	
+
+	function autoClicked() {
+		if(manualOn){
+			offDelayTimer.running = true
+			pumpStatus = "Naloop"
+			manualOn = false
+			manualOff = false
+			automaticMode = true
+		}
+		if(manualOff){
+			pumpStatus = "Auto"
+			manualOn = false
+			manualOff = false
+			automaticMode = true
+		}
+	}
 	
 	function setPumpStatus(pumpFunction) {
 		var url
 		if(pumpFunction){
 			runPump = true
-			intervalTimer.running = false
+			timerRunning = false
 			runTimer.running = false
 			if(tasmotaMode){
 				url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20On"
@@ -173,17 +230,20 @@ App {
 				bxtClient.sendMsg(msg);
 			}
 		}else{
-			runPump = false
-			intervalTimer.running = true
-			if(tasmotaMode){
-				url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20off"
-				var http = new XMLHttpRequest()
-				http.open("GET", url, true);
-				http.send();
-			}else{
-				var msg = bxtFactory.newBxtMessage(BxtMessage.ACTION_INVOKE, selecteddeviceuuid , "SwitchPower", "SetTarget");
-				msg.addArgument("NewTargetValue", "0");
-				bxtClient.sendMsg(msg);
+			if (!manualOn){
+				runPump = false
+				timerRunning = true
+				calculateSwitchTime()
+				if(tasmotaMode){
+					url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20off"
+					var http = new XMLHttpRequest()
+					http.open("GET", url, true);
+					http.send();
+				}else{
+					var msg = bxtFactory.newBxtMessage(BxtMessage.ACTION_INVOKE, selecteddeviceuuid , "SwitchPower", "SetTarget");
+					msg.addArgument("NewTargetValue", "0");
+					bxtClient.sendMsg(msg);
+				}
 			}
 		}
 		if (debugOutput) console.log("*********pumpSwitch runPump : " + runPump)
@@ -207,11 +267,13 @@ App {
 	
 	Timer {
 		id: offDelayTimer   //delay after heating is switched off
-		interval: offDelay*60*1000
+		//interval: offDelay*60*1000
+		interval: 5000
 		repeat: false
 		running: false
 		triggeredOnStart: false
 		onTriggered: {
+			pumpStatus = "Auto uit"
 			setPumpStatus(false)
         }
     }
@@ -232,13 +294,15 @@ App {
 		id: intervalTimer   //time between running the pump
 		interval: pumpInterval*60*60*1000
 		repeat: false
-		running: false
+		running: timerRunning
 		triggeredOnStart: false
 		onTriggered: {
 			setPumpStatus(true)
-			if (debugOutput) console.log("*********pumpSwitch runPump switch on after 24hrs standstill : " + runPump)
+			calculateSwitchTime()
+			pumpStatus = "Timer aan"
+			if (debugOutput) console.log("*********pumpSwitch runPump switch on after ..hrs standstill : " + runPump)
 			runTimer.running = true
-			intervalTimer.running = true
+			intervalTimer.running = timerRunning
         }
     }	
 
@@ -260,5 +324,11 @@ App {
 		}
   		pumpSwitchSettingsFile.write(JSON.stringify(pumpSwitchSettingsJson))
 	}
-
+	
+	
+	function calculateSwitchTime(){
+		var nextSwitch = new Date();
+		nextSwitch.setMinutes (nextSwitch.getMinutes() + (60*pumpInterval));  //60*pumpInterval minutes extra
+		nextSwitchTime = parseInt(Qt.formatDateTime(nextSwitch,"hh")) + ":" +  parseInt(Qt.formatDateTime(nextSwitch,"mm"))
+	}
 }
