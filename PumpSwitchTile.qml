@@ -35,22 +35,32 @@ Tile {
 			pixelSize: qfont.tileTitle
 		}
 		color: !dimState? "black" : "white"
-		text: "switchPump"
+		text: "Pomp schakeling"
 	}
 
 	Image {
-		id: waterIcon
+		id: pumpIcon
 		anchors.centerIn: parent
 		source: runPump? "file:///qmf/qml/apps/pumpSwitch/drawables/" + "pump_" + currentFrame + (dimState ? "-dim" : "") + ".png" : "file:///qmf/qml/apps/pumpSwitch/drawables/" + "img_pump_stop" + (dimState ? "-dim" : "") + ".png"
 		width: isNxt ? 150:120
 		height: isNxt ? 150:120
 		fillMode: Image.PreserveAspectFit
+		visible : !app.pumpError
 	}
+	
+	Image {
+		id: pumpError
+		anchors.centerIn: parent
+		source: "file:///qmf/qml/apps/pumpSwitch/drawables/img_pump_error.png"
+		width: isNxt ? 150:120
+		height: isNxt ? 150:120
+		fillMode: Image.PreserveAspectFit
+		visible : app.pumpError
+	}	
 
 	Text {
 		id: txtPumpStatus
-		text: app.pumpStatus
-		//text: runPump? "Aan" : "Uit"
+		text: app.pumpError? "Fout" : app.pumpStatus
 		color: dimmableColors.tileTextColor
 		anchors {
 			horizontalCenter: parent.horizontalCenter

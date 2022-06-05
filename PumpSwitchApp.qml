@@ -24,7 +24,9 @@ App {
 	property string 	thermostatUuid
 	property string 	pumpStatus : "Auto"
 	property bool		timerRunning: false
+	property bool		pumpError: false
 	property bool		runPump: false
+	property var		lastCurrentUsage: 0.00
 	property bool		manualOn: false
 	property bool		manualOff: false
 	property bool		automaticMode: true
@@ -35,13 +37,18 @@ App {
 	
 	
 	property string 	nextSwitchTime
+
+	property int 		lastOffTimeUnix:0
+	property int 		lastOnTimeUnix:0
+	property int 		savedMinutes:0
+	property var 		savedEuros :0.00
 	
 	property string		switchIP: "192.168.1.100"
 	property bool 		tasmotaMode: true
 	property string  	selecteddeviceuuid : "aaaaaaa-aaaa-1111-2222-ccccccc"
 	property string  	selecteddevicename : "pump switch"
 	property string  	selectedtasmotaIP : "192.168.1.100"
-	
+		
 	property bool 		firstStart: true
 
 	property variant thermInfo : {
@@ -69,6 +76,18 @@ App {
 		'maxPreheatTime': 0
 	}
 	
+	property variant deviceStatusInfo : {
+		'DevUUID': "",
+		'Name': "",
+		'CurrentUsage': 0,
+		'DayUsage': 0,
+		'AvgUsage': 0,
+		'CurrentState': 0,
+		'IsConnected': 0,
+		'NetworkHealthState': 0
+	}
+	
+	
 	signal pumpUpdated
 	
 	property variant pumpSwitchSettingsJson : {
@@ -78,7 +97,7 @@ App {
 		'offDelay': "",
 		'selectedtasmotaIP': "",
 		'selecteddevicename': "",
-		'selecteddeviceuuid': ""	,	
+		'selecteddeviceuuid': ""	
 	}
 	
 	FileIO {
@@ -86,29 +105,39 @@ App {
 		source: "file:///mnt/data/tsc/pumpSwitch_userSettings.json"
 	}
 	
+	FileIO {
+		id: pumpSwitchSavings
+		source: "file:///mnt/data/tsc/appData/pumpSwitch_savings.txt"
+	}
 	
 	Component.onCompleted: {
-		pumpSwitchSettingsJson = JSON.parse(pumpSwitchSettingsFile.read())
-		if (debugOutput) console.log("*********pumpSwitch pumpSwitchSettingsJson : " + pumpSwitchSettingsJson)
 		try {
-				if (debugOutput) console.log("*********pumpSwitch loading settings" )
-				var tasmotaModeTXT= pumpSwitchSettingsJson['tasmotaMode']
-				if (tasmotaModeTXT == 'Tasmota'){
-					tasmotaMode = true
-				}else{
-					tasmotaMode = false
-				}
-				offDelay = pumpSwitchSettingsJson['offDelay']
-				runDuration = pumpSwitchSettingsJson['runDuration']
-				pumpInterval = pumpSwitchSettingsJson['pumpInterval']
-				selectedtasmotaIP = pumpSwitchSettingsJson['selectedtasmotaIP']
-				selecteddevicename = pumpSwitchSettingsJson['selecteddevicename']
-				selecteddeviceuuid = pumpSwitchSettingsJson['selecteddeviceuuid']
-				if (debugOutput) console.log("*********pumpSwitch selecteddeviceuuid : " + selecteddeviceuuid)
-				
+			pumpSwitchSettingsJson = JSON.parse(pumpSwitchSettingsFile.read())
+			if (debugOutput) console.log("*********pumpSwitch pumpSwitchSettingsJson : " + pumpSwitchSettingsJson)
+			if (debugOutput) console.log("*********pumpSwitch loading settings" )
+			var tasmotaModeTXT= pumpSwitchSettingsJson['tasmotaMode']
+			if (tasmotaModeTXT == 'Tasmota'){
+				tasmotaMode = true
+			}else{
+				tasmotaMode = false
+			}
+			offDelay = pumpSwitchSettingsJson['offDelay']
+			runDuration = pumpSwitchSettingsJson['runDuration']
+			pumpInterval = pumpSwitchSettingsJson['pumpInterval']
+			selectedtasmotaIP = pumpSwitchSettingsJson['selectedtasmotaIP']
+			selecteddevicename = pumpSwitchSettingsJson['selecteddevicename']
+			selecteddeviceuuid = pumpSwitchSettingsJson['selecteddeviceuuid']
+			if (debugOutput) console.log("*********pumpSwitch selecteddeviceuuid : " + selecteddeviceuuid)
 		} catch(e) {
 		}
 		
+		try {
+			var pumpSwitchSavingsJson = JSON.parse(pumpSwitchSavings.read())
+			savedMinutes =  pumpSwitchSavingsJson['savedMinutes']
+			savedEuros = pumpSwitchSavingsJson['savedEuros']
+		} catch(e) {
+		}
+
 		if(firstStart){
 			pumpStatus = "Eerste start"
 			//setPumpStatus(true)
@@ -213,27 +242,42 @@ App {
 		}
 	}
 	
-	function setPumpStatus(pumpFunction) {
+	function setPumpStatus(pumpFunction) {		
 		var url
+        var thishour = new Date()
+		if (debugOutput) console.log("*********pumpSwitch thishour : " + thishour)
 		if(pumpFunction){
 			runPump = true
 			timerRunning = false
 			runTimer.running = false
+			lastOnTimeUnix = thishour.getTime()/1000
+			if (debugOutput) console.log("*********pumpSwitch lastOnTimeUnix : " + lastOnTimeUnix)
+			if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
+			savedMinutes = savedMinutes + parseInt((lastOnTimeUnix - lastOffTimeUnix)/60)
+			if (debugOutput) console.log("*********pumpSwitch savedMinutes : " + savedMinutes)			
 			if(tasmotaMode){
 				url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20On"
 				var http = new XMLHttpRequest()
 				http.open("GET", url, true);
 				http.send();
 			}else{
+				savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (0.23/1000)
+				if (debugOutput) console.log("*********pumpSwitch savedEuros : " + savedEuros)
 				var msg = bxtFactory.newBxtMessage(BxtMessage.ACTION_INVOKE, selecteddeviceuuid , "SwitchPower", "SetTarget");
 				msg.addArgument("NewTargetValue", "1");
 				bxtClient.sendMsg(msg);
+				bxtClient.sendMsg(msg); // do it twice because sometimes the plug does not respond
 			}
+			
+			
 		}else{
 			if (!manualOn){
 				runPump = false
 				timerRunning = true
 				calculateSwitchTime()
+				
+				lastOffTimeUnix = thishour.getTime()/1000
+				if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
 				if(tasmotaMode){
 					url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20off"
 					var http = new XMLHttpRequest()
@@ -243,9 +287,16 @@ App {
 					var msg = bxtFactory.newBxtMessage(BxtMessage.ACTION_INVOKE, selecteddeviceuuid , "SwitchPower", "SetTarget");
 					msg.addArgument("NewTargetValue", "0");
 					bxtClient.sendMsg(msg);
+					bxtClient.sendMsg(msg); // do it twice because sometimes the plug does not respond
 				}
 			}
 		}
+		
+		var pumpSwitchSavingsJson = {
+			"savedMinutes" : savedMinutes,
+			"savedEuros" : savedEuros
+		}
+  		pumpSwitchSavings.write(JSON.stringify(pumpSwitchSavingsJson))
 		if (debugOutput) console.log("*********pumpSwitch runPump : " + runPump)
 	}
 	
@@ -328,6 +379,57 @@ App {
 	function calculateSwitchTime(){
 		var nextSwitch = new Date();
 		nextSwitch.setMinutes (nextSwitch.getMinutes() + (60*pumpInterval));  //60*pumpInterval minutes extra
-		nextSwitchTime = parseInt(Qt.formatDateTime(nextSwitch,"hh")) + ":" +  parseInt(Qt.formatDateTime(nextSwitch,"mm"))
+		nextSwitchTime = parseInt(Qt.formatDateTime(nextSwitch,"dd")) + "-" +parseInt(Qt.formatDateTime(nextSwitch,"MM")) + " " + parseInt(Qt.formatDateTime(nextSwitch,"hh")) + ":" +  parseInt(Qt.formatDateTime(nextSwitch,"mm"))
+	}
+	
+	function parseDeviceStatusInfo(update) {
+		var infoList = deviceStatusInfo;
+		var infoNode = update.getChild("device", 0);
+		while (infoNode && infoNode.name === "device") {
+			var uuidNode = infoNode.getChild("DevUUID");
+			var device = infoList[uuidNode.text];
+			if (!device)device = {};
+			var childNode = infoNode.child;
+			while (childNode) {
+				device[childNode.name] = childNode.text;
+				if (debugOutput) console.log("*********pumpSwitch "+ childNode.name + " : " + childNode.text)
+				childNode = childNode.sibling;
+			}
+			infoList[uuidNode.text] = device;
+			if (uuidNode.text == selecteddeviceuuid){
+				if (debugOutput) console.log("*********pumpSwitch FOUND: : " + uuidNode.text)
+				deviceStatusInfo = infoList[uuidNode.text]
+				
+			}
+			infoNode = infoNode.next;		
+		}
+		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.Name : " + deviceStatusInfo.Name)
+		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.CurrentUsage : " + deviceStatusInfo.CurrentUsage)
+		if (!isNaN(deviceStatusInfo.CurrentUsage) && deviceStatusInfo.CurrentUsage > 0){lastCurrentUsage = parseFloat(deviceStatusInfo.CurrentUsage).toFixed(2)}
+		if (debugOutput) console.log("*********pumpSwitch lastCurrentUsage : " + lastCurrentUsage)
+		
+		if (debugOutput) console.log("*********pumpSwitch tasmotaMode : " + tasmotaMode)
+		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.CurrentState : " + deviceStatusInfo.CurrentState)
+		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.IsConnected : " + deviceStatusInfo.IsConnected)
+		
+		if (!tasmotaMode & ((runPump & deviceStatusInfo.CurrentState == 0) || (!runPump & deviceStatusInfo.CurrentState == 1) || deviceStatusInfo.IsConnected == 0 )){
+			pumpError = true
+		}else{
+			pumpError = false
+		}
+		if (debugOutput) console.log("*********pumpSwitch pumpError : " + pumpError)
+	}
+		
+	BxtDatasetHandler {
+		id: deviceStatusInfoDataset
+		dataset: "deviceStatusInfo"
+		discoHandler: smartplugDiscoHandler
+		onDatasetUpdate: parseDeviceStatusInfo(update)
+	}
+	
+	BxtDiscoveryHandler {
+		id: smartplugDiscoHandler
+		deviceType: "happ_smartplug"
+		onDiscoReceived: smartplugUuid = deviceUuid
 	}
 }
