@@ -4,7 +4,7 @@ import qb.components 1.0
 
 Screen {
 	id: pumpSwitchConfigScreen
-	screenTitle: 		"PumpSwitch App Setup"
+	screenTitle: 		"Pomp schakeling instellingen"
 	property bool 		plugsfound: false
 	property bool 		temptasmotaMode: app.tasmotaMode
 	property bool 		debugOutput: app.debugOutput
@@ -58,10 +58,6 @@ Screen {
 						for(var x0 = 0;x0 < devices.length;x0++){
 							if((devices[x0].toUpperCase().indexOf('PUMP')>0 & devices[x0].toUpperCase().indexOf('SWITCH')>0) || devices[x0].indexOf('FGWPF102')>0 || devices[x0].indexOf('ZMNHYD1')>0 ||devices[x0].indexOf('FGWP011')>0 ||devices[x0].indexOf('NAS_WR01Z')>0 ||devices[x0].indexOf('NAS_WR01ZE')>0 ||devices[x0].indexOf('NAS_WR02ZE')>0 ||devices[x0].indexOf('EMPOWER')>0 ||devices[x0].indexOf('EM6550_v1')>0)
 							{
-								//<uuid>f9a24cbd-53f6-4212-80e6-38dc543b5804</uuid>
-								// <type>FGWP011</type>
-								// <name>Teststekker</name>
-								
 								var n20 = devices[x0].indexOf('<uuid>') + 6
 								var n21 = devices[x0].indexOf('</uuid>',n21)
 								var devicesuuid = devices[x0].substring(n20, n21)
@@ -81,7 +77,7 @@ Screen {
 								plugsArray.push(devicesname.trim())
 								uuidArray.push(devicesuuid.trim())
 								
-								console.log("Found Plug : "  + bridgeuuid)
+								if (debugOutput) console.log("Found Plug : "  + devicesuuid.trim())
 								if (plugsfounduuid.length>10){// plugs found
 									plugsfound=true
 								}

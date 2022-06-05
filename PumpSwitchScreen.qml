@@ -4,7 +4,7 @@ import qb.components 1.0
 
 Screen {
 	id: pumpSwitchScreen
-	screenTitle: "PumpSwitch"
+	screenTitle: "Pomp schakeling"
 	
 	onShown: {
 		addCustomTopRightButton("Instellingen")
@@ -22,7 +22,7 @@ Screen {
 
 		font {
 			family: qfont.semiBold.name
-			pixelSize: isNxt ? 24:20
+			pixelSize: isNxt ? 20:16
 		}
 		anchors {
 			top:parent.top
@@ -40,7 +40,7 @@ Screen {
 
 		font {
 			family: qfont.semiBold.name
-			pixelSize: isNxt ? 24:20
+			pixelSize: isNxt ? 20:16
 		}
 		anchors {
 			top:text1.bottom
@@ -116,7 +116,7 @@ Screen {
 
 		font {
 			family: qfont.semiBold.name
-			pixelSize: isNxt ? 24:20
+			pixelSize: isNxt ? 20:16
 		}
 		anchors {
 			top:manualOnButton.bottom
@@ -125,7 +125,108 @@ Screen {
 		}
 		visible: app.automaticMode & app.timerRunning
 	}
+
+	Text {
+		id: text4
+		text: "Tot op heden bespaard in minuten: " + app.savedMinutes		
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text3.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: true
+	}
+
+	Text {
+		id: text5
+		text: "Tot op heden bespaard in euro's (0,23 EUR/kWh): " + app.savedEuros.toFixed(2)	
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text4.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: !tasmotaMode
+	}
 	
+	Text {
+		id: text6
+		text: "Z-wave stekker aangesloten: " + ((app.deviceStatusInfo.IsConnected == 1)? "Ja" : "Nee")
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text5.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: !tasmotaMode
+	}
+	
+		Text {
+		id: text7
+		text: "Z-wave stekker status: " + ((app.deviceStatusInfo.CurrentState == 1)? "Aan" : "Uit")
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text6.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: !tasmotaMode
+	}
+	
+	Text {
+		id: text8
+		text: "Z-wave stekker gebruik: " + app.deviceStatusInfo.CurrentUsage + " Watt"	
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text7.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: !tasmotaMode
+	}
+	
+	Text {
+		id: text9
+		text: "Z-wave stekker signaal (1-10): " + app.deviceStatusInfo.NetworkHealthState	
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text8.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: !tasmotaMode
+	}
 }
 
 

@@ -1,3 +1,6 @@
+1.0.4
+- powerplug data and savings
+
 1.0.3
 - manuals and auto buttons created and times visible
 
