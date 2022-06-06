@@ -26,6 +26,7 @@ App {
 	property string 	pwrUsageUuid
 	property string 	pumpStatus : "Auto"
 	property bool		timerRunning: false
+	property bool		tasmotaHasPower: false
 	property bool		pumpError: false
 	property bool		runPump: false
 	property var		lastCurrentUsage: 0.00
@@ -286,6 +287,7 @@ App {
 			savedMinutes = savedMinutes + parseInt((lastOnTimeUnix - lastOffTimeUnix)/60)
 			if (debugOutput) console.log("*********pumpSwitch savedMinutes : " + savedMinutes)			
 			if(tasmotaMode){
+				if (tasmotaHasPower) savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (priceKWH/1000)
 				url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20On"
 				var http = new XMLHttpRequest()
 				http.open("GET", url, true);
@@ -298,8 +300,6 @@ App {
 				bxtClient.sendMsg(msg);
 				bxtClient.sendMsg(msg); // do it twice because sometimes the plug does not respond
 			}
-			
-			
 		}else{
 			if (!manualOn){
 				runPump = false
@@ -309,6 +309,7 @@ App {
 				lastOffTimeUnix = thishour.getTime()/1000
 				if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
 				if(tasmotaMode){
+					getTasmotapower() //before switching off get the lastpower
 					url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20off"
 					var http = new XMLHttpRequest()
 					http.open("GET", url, true);
@@ -410,6 +411,32 @@ App {
 		var nextSwitch = new Date();
 		nextSwitch.setMinutes (nextSwitch.getMinutes() + (60*pumpInterval));  //60*pumpInterval minutes extra
 		nextSwitchTime = parseInt(Qt.formatDateTime(nextSwitch,"dd")) + "-" +parseInt(Qt.formatDateTime(nextSwitch,"MM")) + " " + parseInt(Qt.formatDateTime(nextSwitch,"hh")) + ":" +  parseInt(Qt.formatDateTime(nextSwitch,"mm"))
+	}
+	
+	
+	function getTasmotapower(){
+		var http = new XMLHttpRequest()
+		var url = "http://" + switchIP + "/?m=1";
+		http.open("GET", url, true)
+		http.onreadystatechange = function() { // Call a function when the state changes.
+			if (http.readyState == XMLHttpRequest.DONE) {
+				if (http.status === 200 || http.status === 300  || http.status === 302) {
+					var response = http.responseText
+					if (debugOutput) console.log("*********pumpSwitch response : " + response)
+					if (response.indexOf('Power{m}')>0){
+						tasmotaHasPower = true
+						var n13 = response.indexOf('Power{m}') + 'Power{m}'.length
+						var n14 = response.indexOf('W{e}',n13)
+						var foundWatts = response.substring(n13, n14).trim()
+						if (debugOutput) console.log("*********pumpSwitch foundWatts : " + foundWatts)
+						lastCurrentUsage = parseFloat(foundWatts);
+					}else{
+						tasmotaHasPower = false
+					}
+				}
+			}
+		}
+        http.send();
 	}
 	
 	function parseDeviceStatusInfo(update) {
