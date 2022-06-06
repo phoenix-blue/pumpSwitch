@@ -78,7 +78,7 @@ Screen {
 								uuidArray.push(devicesuuid.trim())
 								
 								if (debugOutput) console.log("Found Plug : "  + devicesuuid.trim())
-								if (plugsfounduuid.length>10){// plugs found
+								if (devicesuuid.length>5){// plugs found
 									plugsfound=true
 								}
 								break

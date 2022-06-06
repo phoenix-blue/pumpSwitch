@@ -157,12 +157,12 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !app.tasmotaMode
+		visible: !app.tasmotaMode || app.tasmotaHasPower
 	}
 	
 	Text {
-		id: text6
-		text: "Z-wave stekker aangesloten: " + ((app.deviceStatusInfo.IsConnected == 1)? "Ja" : "Nee")
+		id: text8
+		text: "Z-wave stekker gebruik: " + app.deviceStatusInfo.CurrentUsage + " Watt"	
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -176,8 +176,42 @@ Screen {
 		}
 		visible: !app.tasmotaMode
 	}
+
+	Text {
+		id: text8tasmota
+		text: "Tasmota stekker gebruik: " + app.lastCurrentUsage + " Watt"	
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text5.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: app.tasmotaHasPower	
+	}
+
+	Text {
+		id: text6
+		text: "Z-wave stekker aangesloten: " + ((app.deviceStatusInfo.IsConnected == 1)? "Ja" : "Nee")
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text8.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: !app.tasmotaMode
+	}
 	
-		Text {
+	Text {
 		id: text7
 		text: "Z-wave stekker status: " + ((app.deviceStatusInfo.CurrentState == 1)? "Aan" : "Uit")
 		width : isNxt? parent.width - 24 : parent.width - 18
@@ -195,23 +229,6 @@ Screen {
 	}
 	
 	Text {
-		id: text8
-		text: "Z-wave stekker gebruik: " + app.deviceStatusInfo.CurrentUsage + " Watt"	
-		width : isNxt? parent.width - 24 : parent.width - 18
-
-		font {
-			family: qfont.semiBold.name
-			pixelSize: isNxt ? 20:16
-		}
-		anchors {
-			top:text7.bottom
-			left:text1.left
-			topMargin: isNxt ? 5:4
-		}
-		visible: !app.tasmotaMode
-	}
-	
-	Text {
 		id: text9
 		text: "Z-wave stekker signaal (1-10): " + app.deviceStatusInfo.NetworkHealthState	
 		width : isNxt? parent.width - 24 : parent.width - 18
@@ -221,7 +238,7 @@ Screen {
 			pixelSize: isNxt ? 20:16
 		}
 		anchors {
-			top:text8.bottom
+			top:text7.bottom
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
