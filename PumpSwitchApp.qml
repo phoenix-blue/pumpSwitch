@@ -22,6 +22,8 @@ App {
 	property url 		thumbnailIcon: "qrc:/tsc/refresh.png"
 
 	property string 	thermostatUuid
+	property string 	smartplugUuid
+	property string 	pwrUsageUuid
 	property string 	pumpStatus : "Auto"
 	property bool		timerRunning: false
 	property bool		pumpError: false
@@ -42,6 +44,7 @@ App {
 	property int 		lastOnTimeUnix:0
 	property int 		savedMinutes:0
 	property var 		savedEuros :0.00
+	property var 		priceKWH :0.23
 	
 	property string		switchIP: "192.168.1.100"
 	property bool 		tasmotaMode: true
@@ -50,6 +53,7 @@ App {
 	property string  	selectedtasmotaIP : "192.168.1.100"
 		
 	property bool 		firstStart: true
+	property variant 	billingInfos: ({})
 
 	property variant thermInfo : {
 		'currentTemp': 0,
@@ -135,6 +139,8 @@ App {
 			var pumpSwitchSavingsJson = JSON.parse(pumpSwitchSavings.read())
 			savedMinutes =  pumpSwitchSavingsJson['savedMinutes']
 			savedEuros = pumpSwitchSavingsJson['savedEuros']
+			if (debugOutput) console.log("*********pumpSwitch savedMinutes : " + savedMinutes);
+			if (debugOutput) console.log("*********pumpSwitch savedEuros : " + savedEuros);
 		} catch(e) {
 		}
 
@@ -151,6 +157,30 @@ App {
 		registry.registerWidget("screen", pumpSwitchScreenUrl, this, "pumpSwitchScreen")
 	}
 	
+	function parseBillingInfo(msg) {
+		if (msg) {
+			var newBillingInfos = {};
+			var infoChild = msg.getChild("info", 0);
+			while (infoChild) {
+				var billingInfo = {};
+				var childChild = infoChild.child;
+				while (childChild) {
+						if (childChild.name === "type" || childChild.name === "error")
+								billingInfo[childChild.name] = childChild.text;
+						else
+								billingInfo[childChild.name] = parseFloat(childChild.text);
+						childChild = childChild.sibling;
+				}
+				billingInfo.haveSJV = billingInfo.error !== "notSet" && billingInfo.usage !== 0;
+				newBillingInfos[billingInfo.type] = billingInfo;
+				infoChild = infoChild.next;
+			}
+			billingInfos = newBillingInfos;
+			if (debugOutput) console.log("*********pumpSwitch JSON.stringify(billingInfos) : " + JSON.stringify(billingInfos));
+			if (billingInfos.elec.price> 0.05){priceKWH = billingInfos.elec.price}
+			if (debugOutput) console.log("*********pumpSwitch priceKWH : " + priceKWH);
+		}
+	}
 
 	function setPumpStatusfromThermostat(node) {
 		var tempInfo = thermInfo
@@ -261,7 +291,7 @@ App {
 				http.open("GET", url, true);
 				http.send();
 			}else{
-				savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (0.23/1000)
+				savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (priceKWH/1000)
 				if (debugOutput) console.log("*********pumpSwitch savedEuros : " + savedEuros)
 				var msg = bxtFactory.newBxtMessage(BxtMessage.ACTION_INVOKE, selecteddeviceuuid , "SwitchPower", "SetTarget");
 				msg.addArgument("NewTargetValue", "1");
@@ -431,5 +461,19 @@ App {
 		id: smartplugDiscoHandler
 		deviceType: "happ_smartplug"
 		onDiscoReceived: smartplugUuid = deviceUuid
+	}
+	
+	
+	BxtDatasetHandler {
+		id: billingInfoDsHandler
+		dataset: "billingInfo"
+		discoHandler: pwrusageDiscoHandler
+		onDatasetUpdate:  parseBillingInfo(update) 
+	}
+	
+	BxtDiscoveryHandler {
+		id: pwrusageDiscoHandler
+		deviceType: "happ_pwrusage"
+		onDiscoReceived: pwrUsageUuid = deviceUuid
 	}
 }
