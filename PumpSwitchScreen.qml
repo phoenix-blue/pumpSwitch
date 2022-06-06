@@ -145,7 +145,7 @@ Screen {
 
 	Text {
 		id: text5
-		text: "Tot op heden bespaard in euro's (0,23 EUR/kWh): " + app.savedEuros.toFixed(2)	
+		text: "Tot op heden bespaard in euro's (" + app.priceKWH + " EUR/kWh): " + app.savedEuros.toFixed(2)	
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -157,7 +157,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !tasmotaMode
+		visible: !app.tasmotaMode
 	}
 	
 	Text {
@@ -174,7 +174,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !tasmotaMode
+		visible: !app.tasmotaMode
 	}
 	
 		Text {
@@ -191,7 +191,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !tasmotaMode
+		visible: !app.tasmotaMode
 	}
 	
 	Text {
@@ -208,7 +208,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !tasmotaMode
+		visible: !app.tasmotaMode
 	}
 	
 	Text {
@@ -225,7 +225,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !tasmotaMode
+		visible: !app.tasmotaMode
 	}
 }
 

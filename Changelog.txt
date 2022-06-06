@@ -1,3 +1,6 @@
+1.0.5
+- rate from BillingInfo
+
 1.0.4
 - powerplug data and savings
 
