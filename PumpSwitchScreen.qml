@@ -157,7 +157,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !app.tasmotaMode || app.tasmotaHasPower
+		visible: !app.tasmotaMode || (app.tasmotaMode & app.tasmotaHasPower)
 	}
 	
 	Text {
@@ -191,7 +191,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: app.tasmotaHasPower	
+		visible: app.tasmotaMode & app.tasmotaHasPower	
 	}
 
 	Text {
