@@ -301,11 +301,10 @@ App {
 				bxtClient.sendMsg(msg); // do it twice because sometimes the plug does not respond
 			}
 		}else{
+			timerRunning = true
+			calculateSwitchTime()
 			if (!manualOn){
 				runPump = false
-				timerRunning = true
-				calculateSwitchTime()
-				
 				lastOffTimeUnix = thishour.getTime()/1000
 				if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
 				if(tasmotaMode){
@@ -378,10 +377,10 @@ App {
 		running: timerRunning
 		triggeredOnStart: false
 		onTriggered: {
-			setPumpStatus(true)
 			calculateSwitchTime()
 			pumpStatus = "Timer aan"
 			if (debugOutput) console.log("*********pumpSwitch runPump switch on after ..hrs standstill : " + runPump)
+			setPumpStatus(true)
 			runTimer.running = true
 			intervalTimer.running = timerRunning
         }
@@ -410,7 +409,11 @@ App {
 	function calculateSwitchTime(){
 		var nextSwitch = new Date();
 		nextSwitch.setMinutes (nextSwitch.getMinutes() + (60*pumpInterval));  //60*pumpInterval minutes extra
-		nextSwitchTime = parseInt(Qt.formatDateTime(nextSwitch,"dd")) + "-" +parseInt(Qt.formatDateTime(nextSwitch,"MM")) + " " + parseInt(Qt.formatDateTime(nextSwitch,"hh")) + ":" +  parseInt(Qt.formatDateTime(nextSwitch,"mm"))
+		var minutes = Qt.formatDateTime(nextSwitch,"mm")
+		if (minutes.length == 1){minutes = "0" + minutes}
+		var hours = Qt.formatDateTime(nextSwitch,"hh")
+		if (hours.length == 1){hours = "0" + hours}
+		nextSwitchTime = parseInt(Qt.formatDateTime(nextSwitch,"dd")) + "-" +parseInt(Qt.formatDateTime(nextSwitch,"MM")) + " " + hours + ":" +  minutes
 	}
 	
 	

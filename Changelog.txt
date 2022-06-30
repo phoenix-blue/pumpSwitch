@@ -1,3 +1,6 @@
+1.0.7
+- Change to timers
+
 1.0.6
 - Tasmota power added
 

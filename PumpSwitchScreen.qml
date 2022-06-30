@@ -128,7 +128,7 @@ Screen {
 
 	Text {
 		id: text4
-		text: "Tot op heden bespaard in minuten: " + app.savedMinutes		
+		text: "Tot op heden bespaard in uren: " + (app.savedMinutes/60).toFixed(1)	
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -191,7 +191,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: app.tasmotaMode & app.tasmotaHasPower	
+		visible: app.tasmotaMode & app.tasmotaHasPower
 	}
 
 	Text {
