@@ -10,7 +10,7 @@ import FileIO 1.0
 
 App {
 	id: pumpSwitchApp
-	property bool 		debugOutput: false
+	property bool 		debugOutput: true
 	property url 		tileUrl : "PumpSwitchTile.qml"
 	property 			PumpSwitchTile pumpSwitchTile
 	property url 		pumpSwitchConfigScreenUrl : "PumpSwitchConfigScreen.qml"
@@ -25,7 +25,6 @@ App {
 	property string 	smartplugUuid
 	property string 	pwrUsageUuid
 	property string 	pumpStatus : "Auto"
-	property bool		timerRunning: false
 	property bool		tasmotaHasPower: false
 	property bool		pumpError: false
 	property bool		runPump: false
@@ -33,6 +32,7 @@ App {
 	property bool		manualOn: false
 	property bool		manualOff: false
 	property bool		automaticMode: true
+	property bool		timerRunning: false
 	property int		oldPumpstatus: -1
 	property int		pumpInterval: 24 // hours
 	property int		runDuration: 10 //  mins
@@ -146,8 +146,10 @@ App {
 		}
 
 		if(firstStart){
+			intervalTimer.start()
+			timerRunning = true
+			calculateSwitchTime()
 			pumpStatus = "Eerste start"
-			//setPumpStatus(true)
 		}
 	}
 
@@ -278,9 +280,10 @@ App {
         var thishour = new Date()
 		if (debugOutput) console.log("*********pumpSwitch thishour : " + thishour)
 		if(pumpFunction){
+		    //pump switch to on
 			runPump = true
+			intervalTimer.stop()
 			timerRunning = false
-			runTimer.running = false
 			lastOnTimeUnix = thishour.getTime()/1000
 			if (debugOutput) console.log("*********pumpSwitch lastOnTimeUnix : " + lastOnTimeUnix)
 			if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
@@ -301,9 +304,11 @@ App {
 				bxtClient.sendMsg(msg); // do it twice because sometimes the plug does not respond
 			}
 		}else{
-			timerRunning = true
-			calculateSwitchTime()
+			//pump switch to off
 			if (!manualOn){
+				intervalTimer.restart()
+				timerRunning = true
+				calculateSwitchTime()
 				runPump = false
 				lastOffTimeUnix = thishour.getTime()/1000
 				if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
@@ -360,29 +365,31 @@ App {
 	
 	Timer {
 		id: runTimer   //time that the pump is running
-		interval: runDuration*60*1000
+		interval: runDuration*60*1000  //runDuration*60*1000
 		repeat: false
 		running: false
 		triggeredOnStart: false
 		onTriggered: {
+		    if (debugOutput) console.log("*********pumpSwitch stopping pump from time mode : ")
 			setPumpStatus(false)
-			if (debugOutput) console.log("*********pumpSwitch runPump switch off after 30 mins running : " + runPump)
+			if (debugOutput) console.log("*********pumpSwitch stopping runtimer")
+			runTimer.stop()
         }
     }
 	
 	Timer {
 		id: intervalTimer   //time between running the pump
-		interval: pumpInterval*60*60*1000
+		interval: pumpInterval*60*60*1000 //pumpInterval*60*60*1000
 		repeat: false
-		running: timerRunning
+		running: false
 		triggeredOnStart: false
 		onTriggered: {
-			calculateSwitchTime()
 			pumpStatus = "Timer aan"
 			if (debugOutput) console.log("*********pumpSwitch runPump switch on after ..hrs standstill : " + runPump)
+			intervalTimer.restart()
+			if (debugOutput) console.log("*********pumpSwitch starting runtimer : ")
+			runTimer.restart()
 			setPumpStatus(true)
-			runTimer.running = true
-			intervalTimer.running = timerRunning
         }
     }	
 
@@ -403,6 +410,8 @@ App {
 			"selecteddeviceuuid" : selecteddeviceuuid
 		}
   		pumpSwitchSettingsFile.write(JSON.stringify(pumpSwitchSettingsJson))
+		calculateSwitchTime()
+		intervalTimer.restart()
 	}
 	
 	
@@ -414,6 +423,7 @@ App {
 		var hours = Qt.formatDateTime(nextSwitch,"hh")
 		if (hours.length == 1){hours = "0" + hours}
 		nextSwitchTime = parseInt(Qt.formatDateTime(nextSwitch,"dd")) + "-" +parseInt(Qt.formatDateTime(nextSwitch,"MM")) + " " + hours + ":" +  minutes
+		if (debugOutput) console.log("*********pumpSwitch nextSwitchTime : " + nextSwitchTime)
 	}
 	
 	

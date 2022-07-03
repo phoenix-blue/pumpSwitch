@@ -1,3 +1,6 @@
+1.0.8
+- Small changes
+
 1.0.7
 - Change to timers
 
