@@ -34,7 +34,7 @@ Screen {
 
 	Text {
 		id: text2
-		text: "Selecteer onder instellingen de slimme stekker. Hieruit is de keuze tussen de zwave plus stekkers die je hebt aangemeld in de Toon of een Tasmota stekker (bijvoorbeeld een Sonoff die je geflashed hebt)."
+		text: "Selecteer onder instellingen de slimme stekker. Hieruit is de keuze tussen de Z-wave plus stekkers die je hebt aangemeld in de Toon, een Tasmota stekker (bijvoorbeeld een Sonoff die je geflashed hebt) of een Shelly stekker (Gen3 met RPC API)."
 		wrapMode: Text.WordWrap
 		width : isNxt? parent.width - 24 : parent.width - 18
 
@@ -162,7 +162,7 @@ Screen {
 	
 	Text {
 		id: text8
-		text: "Z-wave stekker gebruik: " + app.deviceStatusInfo.CurrentUsage + " Watt"	
+		text: app.deviceType + " stekker gebruik: " + app.deviceStatusInfo.CurrentUsage + " Watt"	
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -174,12 +174,12 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !app.tasmotaMode
+		visible: app.deviceType == "Toon"
 	}
 
 	Text {
 		id: text8tasmota
-		text: "Tasmota stekker gebruik: " + app.lastCurrentUsage + " Watt"	
+		text: app.deviceType + " stekker gebruik: " + app.lastCurrentUsage + " Watt"	
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -191,12 +191,29 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: app.tasmotaMode & app.tasmotaHasPower
+		visible: app.deviceType == "Tasmota" && app.tasmotaHasPower
+	}
+
+	Text {
+		id: text8shelly
+		text: app.deviceType + " stekker gebruik: " + app.lastCurrentUsage + " Watt"	
+		width : isNxt? parent.width - 24 : parent.width - 18
+
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 20:16
+		}
+		anchors {
+			top:text5.bottom
+			left:text1.left
+			topMargin: isNxt ? 5:4
+		}
+		visible: app.deviceType == "Shelly" && app.shellyHasPower
 	}
 
 	Text {
 		id: text6
-		text: "Z-wave stekker aangesloten: " + ((app.deviceStatusInfo.IsConnected == 1)? "Ja" : "Nee")
+		text: app.deviceType + " stekker aangesloten: " + ((app.deviceStatusInfo.IsConnected == 1)? "Ja" : "Nee")
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -208,12 +225,12 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !app.tasmotaMode
+		visible: app.deviceType == "Toon"
 	}
 	
 	Text {
 		id: text7
-		text: "Z-wave stekker status: " + ((app.deviceStatusInfo.CurrentState == 1)? "Aan" : "Uit")
+		text: app.deviceType + " stekker status: " + ((app.deviceStatusInfo.CurrentState == 1)? "Aan" : "Uit")
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -225,12 +242,12 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !app.tasmotaMode
+		visible: app.deviceType == "Toon"
 	}
 	
 	Text {
 		id: text9
-		text: "Z-wave stekker signaal (1-10): " + app.deviceStatusInfo.NetworkHealthState	
+		text: app.deviceType + " stekker signaal (1-10): " + app.deviceStatusInfo.NetworkHealthState	
 		width : isNxt? parent.width - 24 : parent.width - 18
 
 		font {
@@ -242,7 +259,7 @@ Screen {
 			left:text1.left
 			topMargin: isNxt ? 5:4
 		}
-		visible: !app.tasmotaMode
+		visible: app.deviceType == "Toon"
 	}
 }
 

@@ -26,9 +26,13 @@ App {
 	property string 	pwrUsageUuid
 	property string 	pumpStatus : "Auto"
 	property bool		tasmotaHasPower: false
+	property bool		shellyHasPower: false
 	property bool		pumpError: false
 	property bool		runPump: false
 	property var		lastCurrentUsage: 0.00
+	property var		powerReadings: []  // Array to store power readings
+	property var		avgPowerDuringRun: 0.00  // Average power during pump run
+	property int		powerReadingStartTime: 0  // When we started collecting readings
 	property bool		manualOn: false
 	property bool		manualOff: false
 	property bool		automaticMode: true
@@ -48,10 +52,13 @@ App {
 	property var 		priceKWH :0.23
 	
 	property string		switchIP: "192.168.1.100"
-	property bool 		tasmotaMode: true
+	property bool 		tasmotaMode: false
+	property bool 		shellyMode: false
+	property string		deviceType: "Toon"  // "Toon", "Tasmota", "Shelly"
 	property string  	selecteddeviceuuid : "aaaaaaa-aaaa-1111-2222-ccccccc"
 	property string  	selecteddevicename : "pump switch"
 	property string  	selectedtasmotaIP : "192.168.1.100"
+	property string  	selectedShellyIP : "192.168.1.200"
 		
 	property bool 		firstStart: true
 	property variant 	billingInfos: ({})
@@ -97,10 +104,13 @@ App {
 	
 	property variant pumpSwitchSettingsJson : {
 		'tasmotaMode': "",
+		'shellyMode': "",
+		'deviceType': "",
 		'pumpInterval': "",
 		'runDuration': "",
 		'offDelay': "",
 		'selectedtasmotaIP': "",
+		'selectedShellyIP': "",
 		'selecteddevicename': "",
 		'selecteddeviceuuid': ""	
 	}
@@ -120,16 +130,28 @@ App {
 			pumpSwitchSettingsJson = JSON.parse(pumpSwitchSettingsFile.read())
 			if (debugOutput) console.log("*********pumpSwitch pumpSwitchSettingsJson : " + pumpSwitchSettingsJson)
 			if (debugOutput) console.log("*********pumpSwitch loading settings" )
+			
+			// Load device type and modes
+			deviceType = pumpSwitchSettingsJson['deviceType'] || "Tasmota"
 			var tasmotaModeTXT= pumpSwitchSettingsJson['tasmotaMode']
-			if (tasmotaModeTXT == 'Tasmota'){
+			var shellyModeTXT= pumpSwitchSettingsJson['shellyMode']
+			
+			if (tasmotaModeTXT == 'Tasmota' || deviceType == 'Tasmota'){
 				tasmotaMode = true
-			}else{
+				shellyMode = false
+			} else if (shellyModeTXT == 'Shelly' || deviceType == 'Shelly'){
 				tasmotaMode = false
+				shellyMode = true
+			} else {
+				tasmotaMode = false
+				shellyMode = false
 			}
+			
 			offDelay = pumpSwitchSettingsJson['offDelay']
 			runDuration = pumpSwitchSettingsJson['runDuration']
 			pumpInterval = pumpSwitchSettingsJson['pumpInterval']
 			selectedtasmotaIP = pumpSwitchSettingsJson['selectedtasmotaIP']
+			selectedShellyIP = pumpSwitchSettingsJson['selectedShellyIP'] || "192.168.1.200"
 			selecteddevicename = pumpSwitchSettingsJson['selecteddevicename']
 			selecteddeviceuuid = pumpSwitchSettingsJson['selecteddeviceuuid']
 			if (debugOutput) console.log("*********pumpSwitch selecteddeviceuuid : " + selecteddeviceuuid)
@@ -285,18 +307,38 @@ App {
 			intervalTimer.stop()
 			timerRunning = false
 			lastOnTimeUnix = thishour.getTime()/1000
-			if (debugOutput) console.log("*********pumpSwitch lastOnTimeUnix : " + lastOnTimeUnix)
-			if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
-			savedMinutes = savedMinutes + parseInt((lastOnTimeUnix - lastOffTimeUnix)/60)
-			if (debugOutput) console.log("*********pumpSwitch savedMinutes : " + savedMinutes)			
+			
+			// Reset power readings for new run period
+			powerReadings = []
+			avgPowerDuringRun = 0
+			powerReadingStartTime = lastOnTimeUnix
+			
+			if (debugOutput) console.log("*********pumpSwitch pump ON - lastOnTimeUnix : " + lastOnTimeUnix)
+			if (debugOutput) console.log("*********pumpSwitch started power monitoring")			
 			if(tasmotaMode){
-				if (tasmotaHasPower) savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (priceKWH/1000)
+				// Only calculate euro savings with valid time difference and power data
+				if (tasmotaHasPower && lastOffTimeUnix > 0 && (lastOnTimeUnix - lastOffTimeUnix) < 86400) {
+					savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (priceKWH/1000)
+				}
 				url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20On"
 				var http = new XMLHttpRequest()
 				http.open("GET", url, true);
 				http.send();
+			} else if(shellyMode){
+				// Only calculate euro savings with valid time difference and power data
+				if (shellyHasPower && lastOffTimeUnix > 0 && (lastOnTimeUnix - lastOffTimeUnix) < 86400) {
+					savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (priceKWH/1000)
+				}
+				url = "http://" + selectedShellyIP + "/rpc/Switch.Set?id=0&on=true"
+				var http = new XMLHttpRequest()
+				http.open("GET", url, true);
+				http.send();
+				if (debugOutput) console.log("*********pumpSwitch Shelly ON URL: " + url)
 			}else{
-				savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (priceKWH/1000)
+				// Only calculate euro savings with valid time difference
+				if (lastOffTimeUnix > 0 && (lastOnTimeUnix - lastOffTimeUnix) < 86400) {
+					savedEuros = savedEuros + (parseFloat((lastOnTimeUnix - lastOffTimeUnix)/3600) * lastCurrentUsage) * (priceKWH/1000)
+				}
 				if (debugOutput) console.log("*********pumpSwitch savedEuros : " + savedEuros)
 				var msg = bxtFactory.newBxtMessage(BxtMessage.ACTION_INVOKE, selecteddeviceuuid , "SwitchPower", "SetTarget");
 				msg.addArgument("NewTargetValue", "1");
@@ -310,14 +352,39 @@ App {
 				timerRunning = true
 				calculateSwitchTime()
 				runPump = false
+				lastCurrentUsage = 0  // Reset power display when pump turns off
 				lastOffTimeUnix = thishour.getTime()/1000
-				if (debugOutput) console.log("*********pumpSwitch lastOffTimeUnix : " + lastOffTimeUnix)
+				
+				// NOW CALCULATE THE SAVINGS (when pump goes OFF)
+				if (lastOnTimeUnix > 0 && (lastOffTimeUnix - lastOnTimeUnix) > 0 && (lastOffTimeUnix - lastOnTimeUnix) < 86400) {
+					var runtimeMinutes = parseInt((lastOffTimeUnix - lastOnTimeUnix)/60)
+					savedMinutes = savedMinutes + runtimeMinutes
+					
+					// Calculate euro savings using average power during run
+					if (avgPowerDuringRun > 0) {
+						var runtimeHours = (lastOffTimeUnix - lastOnTimeUnix) / 3600
+						var euroSavings = (runtimeHours * avgPowerDuringRun) * (priceKWH / 1000)
+						savedEuros = savedEuros + euroSavings
+						if (debugOutput) console.log("*********pumpSwitch SAVINGS - Runtime: " + runtimeMinutes + " min, Avg power: " + avgPowerDuringRun.toFixed(1) + "W, Euro savings: €" + euroSavings.toFixed(4))
+					}
+					
+					if (debugOutput) console.log("*********pumpSwitch TOTAL SAVINGS - Minutes: " + savedMinutes + ", Euros: €" + savedEuros.toFixed(2))
+				}
+				
+				if (debugOutput) console.log("*********pumpSwitch pump OFF - lastOffTimeUnix : " + lastOffTimeUnix)
+				
+				// Turn off the physical pump
 				if(tasmotaMode){
-					getTasmotapower() //before switching off get the lastpower
 					url = "http://" + selectedtasmotaIP + "/cm?cmnd=Power%20off"
 					var http = new XMLHttpRequest()
 					http.open("GET", url, true);
 					http.send();
+				} else if(shellyMode){
+					url = "http://" + selectedShellyIP + "/rpc/Switch.Set?id=0&on=false"
+					var http = new XMLHttpRequest()
+					http.open("GET", url, true);
+					http.send();
+					if (debugOutput) console.log("*********pumpSwitch Shelly OFF URL: " + url)
 				}else{
 					var msg = bxtFactory.newBxtMessage(BxtMessage.ACTION_INVOKE, selecteddeviceuuid , "SwitchPower", "SetTarget");
 					msg.addArgument("NewTargetValue", "0");
@@ -393,19 +460,83 @@ App {
         }
     }	
 
+	Timer {
+		id: shellyPollingTimer
+		interval: 30000  // Poll every 30 seconds
+		repeat: true
+		running: shellyMode && !timerRunning
+		onTriggered: {
+			if (shellyMode) {
+				getShellypower()
+			}
+		}
+	}
+
+	function addPowerReading(power) {
+		var currentTime = (new Date().getTime()) / 1000
+		
+		// Skip first 30 seconds to avoid startup current
+		if (powerReadingStartTime > 0 && (currentTime - powerReadingStartTime) < 30) {
+			if (debugOutput) console.log("*********pumpSwitch skipping startup power reading: " + power + "W")
+			return
+		}
+		
+		// Filter extreme values (less than 5W or more than 500W for typical pumps)
+		if (power < 5 || power > 500) {
+			if (debugOutput) console.log("*********pumpSwitch filtering extreme power reading: " + power + "W")
+			return
+		}
+		
+		powerReadings.push(power)
+		if (debugOutput) console.log("*********pumpSwitch added power reading: " + power + "W (total readings: " + powerReadings.length + ")")
+		
+		// Calculate running average
+		if (powerReadings.length > 0) {
+			var sum = 0
+			for (var i = 0; i < powerReadings.length; i++) {
+				sum += powerReadings[i]
+			}
+			avgPowerDuringRun = sum / powerReadings.length
+			if (debugOutput) console.log("*********pumpSwitch average power during run: " + avgPowerDuringRun.toFixed(1) + "W")
+		}
+	}
+
+	function resetSavings() {
+		savedMinutes = 0
+		savedEuros = 0.00
+		var pumpSwitchSavingsJson = {
+			"savedMinutes" : savedMinutes,
+			"savedEuros" : savedEuros
+		}
+		pumpSwitchSavings.write(JSON.stringify(pumpSwitchSavingsJson))
+		if (debugOutput) console.log("*********pumpSwitch savings reset")
+	}
+
 	function saveSettings() {
 		var temptasmotaMode = ""
+		var tempshellyMode = ""
+		
 		if (tasmotaMode){
 			temptasmotaMode = "Tasmota"
 		}else{
 			temptasmotaMode = "Fibaro"
 		}
+		
+		if (shellyMode){
+			tempshellyMode = "Shelly"
+		}else{
+			tempshellyMode = "Toon"
+		}
+		
  		var pumpSwitchSettingsJson = {
 			"tasmotaMode" : temptasmotaMode,
+			"shellyMode" : tempshellyMode,
+			"deviceType" : deviceType,
 			"offDelay" : offDelay,
 			"runDuration" : runDuration,
 			"pumpInterval" : pumpInterval,
 			"selectedtasmotaIP" : selectedtasmotaIP,
+			"selectedShellyIP" : selectedShellyIP,
 			"selecteddevicename" : selecteddevicename,
 			"selecteddeviceuuid" : selecteddeviceuuid
 		}
@@ -443,8 +574,47 @@ App {
 						var foundWatts = response.substring(n13, n14).trim()
 						if (debugOutput) console.log("*********pumpSwitch foundWatts : " + foundWatts)
 						lastCurrentUsage = parseFloat(foundWatts);
+						
+						// Add to power readings if pump is running
+						if (runPump) {
+							addPowerReading(lastCurrentUsage)
+						}
 					}else{
 						tasmotaHasPower = false
+					}
+				}
+			}
+		}
+        http.send();
+	}
+	
+	function getShellypower(){
+		var http = new XMLHttpRequest()
+		var url = "http://" + selectedShellyIP + "/rpc/Shelly.GetStatus";
+		http.open("GET", url, true)
+		http.onreadystatechange = function() { // Call a function when the state changes.
+			if (http.readyState == XMLHttpRequest.DONE) {
+				if (http.status === 200 || http.status === 300  || http.status === 302) {
+					var response = http.responseText
+					if (debugOutput) console.log("*********pumpSwitch Shelly response : " + response)
+					try {
+						var jsonResponse = JSON.parse(response)
+						if (jsonResponse["switch:0"]) {
+							shellyHasPower = true
+							var apower = jsonResponse["switch:0"].apower || 0
+							if (debugOutput) console.log("*********pumpSwitch Shelly foundWatts : " + apower)
+							lastCurrentUsage = parseFloat(apower);
+							
+							// Add to power readings if pump is running
+							if (runPump) {
+								addPowerReading(lastCurrentUsage)
+							}
+						} else {
+							shellyHasPower = false
+						}
+					} catch (e) {
+						if (debugOutput) console.log("*********pumpSwitch Shelly JSON parse error: " + e)
+						shellyHasPower = false
 					}
 				}
 			}
@@ -475,14 +645,21 @@ App {
 		}
 		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.Name : " + deviceStatusInfo.Name)
 		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.CurrentUsage : " + deviceStatusInfo.CurrentUsage)
-		if (!isNaN(deviceStatusInfo.CurrentUsage) && deviceStatusInfo.CurrentUsage > 0){lastCurrentUsage = parseFloat(deviceStatusInfo.CurrentUsage).toFixed(2)}
+		if (!isNaN(deviceStatusInfo.CurrentUsage) && deviceStatusInfo.CurrentUsage > 0){
+			lastCurrentUsage = parseFloat(deviceStatusInfo.CurrentUsage).toFixed(2)
+			
+			// Add to power readings if pump is running (for Z-wave devices)
+			if (runPump && deviceType == "Toon") {
+				addPowerReading(lastCurrentUsage)
+			}
+		}
 		if (debugOutput) console.log("*********pumpSwitch lastCurrentUsage : " + lastCurrentUsage)
 		
 		if (debugOutput) console.log("*********pumpSwitch tasmotaMode : " + tasmotaMode)
 		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.CurrentState : " + deviceStatusInfo.CurrentState)
 		if (debugOutput) console.log("*********pumpSwitch deviceStatusInfo.IsConnected : " + deviceStatusInfo.IsConnected)
 		
-		if (!tasmotaMode & ((runPump & deviceStatusInfo.CurrentState == 0) || (!runPump & deviceStatusInfo.CurrentState == 1) || deviceStatusInfo.IsConnected == 0 )){
+		if (deviceType == "Toon" & ((runPump & deviceStatusInfo.CurrentState == 0) || (!runPump & deviceStatusInfo.CurrentState == 1) || deviceStatusInfo.IsConnected == 0 )){
 			pumpError = true
 		}else{
 			pumpError = false

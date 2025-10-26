@@ -7,10 +7,13 @@ Screen {
 	screenTitle: 		"Pomp schakeling instellingen"
 	property bool 		plugsfound: false
 	property bool 		temptasmotaMode: app.tasmotaMode
+	property bool 		tempshellyMode: app.shellyMode
+	property string 	tempdeviceType: app.deviceType
 	property bool 		debugOutput: app.debugOutput
 	property string  	tempselecteddeviceuuid:app.selecteddeviceuuid
 	property string  	tempselecteddevicename:app.selecteddevicename
 	property string  	tempselectedtasmotaIP:app.selectedtasmotaIP
+	property string  	tempselectedShellyIP:app.selectedShellyIP
 	property variant    plugsArray : []
 	property variant    uuidArray : []
 	property bool 		firstShown: true;
@@ -25,14 +28,27 @@ Screen {
 		getPlugNames()
 		addCustomTopRightButton("Opslaan")
 		tasmotaIPlabel.inputText = tempselectedtasmotaIP
-		enableTasmotaToggle.isSwitchedOn = temptasmotaMode;
+		shellyIPlabel.inputText = tempselectedShellyIP
+		// Set initial device type if not set
+		if (!tempdeviceType) {
+			if (temptasmotaMode) {
+				tempdeviceType = "tasmota"
+			} else if (tempshellyMode) {
+				tempdeviceType = "shelly"
+			} else {
+				tempdeviceType = "toon"
+			}
+		}
 	}
 	
 	onCustomButtonClicked: {
 		app.selecteddeviceuuid = tempselecteddeviceuuid
 		app.selecteddevicename = tempselecteddevicename
 		app.selectedtasmotaIP = tempselectedtasmotaIP
+		app.selectedShellyIP = tempselectedShellyIP
 		app.tasmotaMode = temptasmotaMode
+		app.shellyMode = tempshellyMode
+		app.deviceType = tempdeviceType
 		
 		app.pumpInterval =intervalLabel.inputText
 		app.runDuration =	runTimeLabel.inputText 
@@ -44,6 +60,12 @@ Screen {
 	function saveTasmotaIP(text) {
 		if (text) {
 			tempselectedtasmotaIP = text;
+		}
+	}
+
+	function saveShellyIP(text) {
+		if (text) {
+			tempselectedShellyIP = text;
 		}
 	}
 
@@ -142,8 +164,8 @@ Screen {
 	}
 
 	Text {
-		id: text1
-		text: "Z-wave stekker "
+		id: savingsText
+		text: "Besparingen "
 		font {
 			family: qfont.semiBold.name
 			pixelSize: isNxt ? 18:14
@@ -155,35 +177,158 @@ Screen {
 		}
 	}
 	
-	OnOffToggle {
-		id: enableTasmotaToggle
-		height:  30
+	Text {
+		id: resetLabel
+		text: "terug naar 0:"
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 18:14
+		}
 		anchors {
-			top:text1.top
-			left:text1.right
+			top:savingsText.top
+			left:savingsText.right
 			leftMargin: isNxt ? 20:16
 		}
-		leftIsSwitchedOn: false
-		onSelectedChangedByUser: {
-			if (isSwitchedOn) {
-				temptasmotaMode = true;
-			} else {
-				temptasmotaMode = false;
+	}
+
+	Rectangle {
+		id: resetButton
+		width: isNxt ? 80 : 64
+		height: isNxt ? 30 : 24
+		color: "orange"
+		border.color: "black"
+		border.width: 1
+		radius: 4
+		anchors {
+			top: savingsText.top
+			left: resetLabel.right
+			leftMargin: isNxt ? 20:16
+		}
+
+		Text {
+			text: "Reset"
+			font.pixelSize: isNxt ? 14 : 11
+			anchors.centerIn: parent
+		}
+
+		MouseArea {
+			anchors.fill: parent
+			onClicked: {
+				app.resetSavings()
 			}
+		}
+	}
+
+	Text {
+		id: text1
+		text: "Pomp stekker "
+		font {
+			family: qfont.semiBold.name
+			pixelSize: isNxt ? 18:14
+		}
+		anchors {
+			top:savingsText.bottom
+			left:offDelayLabel.left
+			topMargin: isNxt ? 10:8
 		}
 	}
 	
 	Text {
-		id: text2
-		text: "Tasmota"
+		id: deviceTypeLabel
+		text: "Apparaat type:"
 		font {
 			family: qfont.semiBold.name
 			pixelSize: isNxt ? 18:14
 		}
 		anchors {
 			top:text1.top
-			left:enableTasmotaToggle.right
+			left:text1.right
 			leftMargin: isNxt ? 20:16
+		}
+	}
+
+	Row {
+		id: deviceTypeButtons
+		spacing: isNxt ? 10 : 8
+		anchors {
+			top: text1.top
+			left: deviceTypeLabel.right
+			leftMargin: isNxt ? 20:16
+		}
+
+		Rectangle {
+			id: toonButton
+			width: isNxt ? 80 : 64
+			height: isNxt ? 30 : 24
+			color: tempdeviceType == "Toon" ? "lightgreen" : "lightgray"
+			border.color: "black"
+			border.width: 1
+			radius: 4
+
+			Text {
+				text: "Toon"
+				font.pixelSize: isNxt ? 14 : 11
+				anchors.centerIn: parent
+			}
+
+			MouseArea {
+				anchors.fill: parent
+				onClicked: {
+					tempdeviceType = "Toon"
+					temptasmotaMode = false
+					tempshellyMode = false
+				}
+			}
+		}
+
+		Rectangle {
+			id: tasmotaButton
+			width: isNxt ? 80 : 64
+			height: isNxt ? 30 : 24
+			color: tempdeviceType == "Tasmota" ? "lightgreen" : "lightgray"
+			border.color: "black"
+			border.width: 1
+			radius: 4
+
+			Text {
+				text: "Tasmota"
+				font.pixelSize: isNxt ? 14 : 11
+				anchors.centerIn: parent
+			}
+
+			MouseArea {
+				anchors.fill: parent
+				onClicked: {
+					tempdeviceType = "Tasmota"
+					temptasmotaMode = true
+					tempshellyMode = false
+				}
+			}
+		}
+
+		Rectangle {
+			id: shellyButton
+			width: isNxt ? 80 : 64
+			height: isNxt ? 30 : 24
+			color: tempdeviceType == "Shelly" ? "lightgreen" : "lightgray"
+			border.color: "black"
+			border.width: 1
+			radius: 4
+
+			Text {
+				text: "Shelly"
+				font.pixelSize: isNxt ? 14 : 11
+				anchors.centerIn: parent
+			}
+
+			MouseArea {
+				anchors.fill: parent
+				onClicked: {
+					tempdeviceType = "Shelly"
+					temptasmotaMode = false
+					tempshellyMode = true
+				}
+			}
 		}
 	}
 	
@@ -192,19 +337,38 @@ Screen {
 		id: tasmotaIPlabel
 		width: (parent.width*0.4) - 40		
 		leftTextAvailableWidth:  isNxt ? 200:160
-		leftText: "Tasmota IP adress"
+		leftText: "Tasmota IP adres"
 		height: 40		
 		labelFontSize: isNxt ? 18:14
 		labelFontFamily: qfont.semiBold.name
 		anchors {
 			left: text1.left
-			top: text1.bottom
+			top: resetSavingsButton.bottom
 			topMargin: isNxt ? 10:8
 		}
 		onClicked: {
-			qkeyboard.open("Tasmota IP adress", tasmotaIPlabel.inputText, saveTasmotaIP)
+			qkeyboard.open("Tasmota IP adres", tasmotaIPlabel.inputText, saveTasmotaIP)
 		}
-		visible: temptasmotaMode
+		visible: tempdeviceType == "Tasmota"
+	}
+
+	EditTextLabel4421 {
+		id: shellyIPlabel
+		width: (parent.width*0.4) - 40		
+		leftTextAvailableWidth:  isNxt ? 200:160
+		leftText: "Shelly IP adres"
+		height: 40		
+		labelFontSize: isNxt ? 18:14
+		labelFontFamily: qfont.semiBold.name
+		anchors {
+			left: text1.left
+			top: deviceTypeButtons.bottom
+			topMargin: isNxt ? 10:8
+		}
+		onClicked: {
+			qkeyboard.open("Shelly IP adres", shellyIPlabel.inputText, saveShellyIP)
+		}
+		visible: tempdeviceType == "Shelly"
 	}
 
 
@@ -218,7 +382,7 @@ Screen {
 			border.width: isNxt ? 3 : 2
 		anchors {
 			left: text1.left
-			top: text1.bottom
+			top: resetSavingsButton.bottom
 			topMargin: isNxt ?10:8
 		}
 
@@ -256,7 +420,7 @@ Screen {
 			}
 			focus: true
 		}
-		visible: !temptasmotaMode
+		visible: tempdeviceType == "Toon"
 	}
 	
 	IconButton {
@@ -273,7 +437,7 @@ Screen {
                         listview1.currentIndex  = listview1.currentIndex -1
             }
 		}
-		visible: !temptasmotaMode		
+		visible: tempdeviceType == "Toon"		
 	}
 
 	IconButton {
@@ -290,7 +454,7 @@ Screen {
                         listview1.currentIndex  = listview1.currentIndex +1
             }
 		}
-		visible: !temptasmotaMode		
+		visible: tempdeviceType == "Toon"		
 	}
 
 
@@ -316,7 +480,7 @@ Screen {
 				if (debugOutput) console.log("*********pumpSwitch Selected Plug : "  + tempselecteddeviceuuid)
 			}
 		}
-		visible: !temptasmotaMode
+		visible: tempdeviceType == "Toon"
 	}
 
 	Text {
@@ -331,7 +495,7 @@ Screen {
 			topMargin:isNxt ? 10:8
 			left: text1.left
 		}
-		visible: !temptasmotaMode
+		visible: tempdeviceType == "Toon"
 	}
 	
 	Text {
@@ -346,7 +510,7 @@ Screen {
 			topMargin:isNxt ? 10:8
 			left: text1.left
 		}
-		visible: !temptasmotaMode
+		visible: tempdeviceType == "Toon"
 	}
 	
 	Text {
@@ -361,10 +525,10 @@ Screen {
 			topMargin:isNxt ? 10:8
 			left: text1.left
 		}
-		visible: !temptasmotaMode
+		visible: tempdeviceType == "Toon"
 	}
-	
-	
+
+
 
 }
 
