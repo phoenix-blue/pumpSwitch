@@ -1,0 +1,28 @@
+1.0.8
+- Small changes
+
+1.0.7
+- Change to timers
+
+1.0.6
+- Tasmota power added
+
+1.0.5
+- rate from BillingInfo
+
+1.0.4
+- powerplug data and savings
+
+1.0.3
+- manuals and auto buttons created and times visible
+
+1.0.2
+- slower pump symbol, off delay added, times in configscreen
+
+1.0.1
+- zwave switch named to pump switch added
+
+1.0.0
+- first production release
+
+
