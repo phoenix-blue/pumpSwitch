@@ -1,112 +1,102 @@
-# PumpSwitch v1.0.8 - Enhanced Multi-Device Support
+# PumpSwitch
 
-Een geavanceerde pompschakel-app voor Toon thermostaten met ondersteuning voor meerdere apparaat types en intelligente stroomverbruikmonitoring.
+Intelligente pompschakel-app voor Toon thermostaten met ondersteuning voor verschillende apparaat types.
 
-## 🆕 Nieuwe Features in v1.0.8
+## Overzicht
 
-### Multi-Device Ondersteuning
-- **Toon (Z-wave)**: Originele ondersteuning voor Toon ingebouwde schakelaars
-- **Tasmota**: HTTP API ondersteuning voor Tasmota-gebaseerde schakelaars
-- **Shelly Plug-S Gen3**: Volledige RPC API integratie voor nieuwste Shelly devices
+PumpSwitch is een Toon app die automatisch je CV-pomp kan schakelen op basis van verwarmingspatronen. Dit helpt energie te besparen en verlengt de levensduur van je CV-pomp.
 
-### Intelligente Stroomverbruikmonitoring
-- **Opstroom Filtering**: Negeert hoge opstroom gedurende eerste 30 seconden
-- **Extreme Waarde Filtering**: Filtert onrealistische waarden (5-500W bereik)
-- **Gemiddelde Berekening**: Gebruikt gemiddeld verbruik voor nauwkeurige besparingsberekeningen
-- **Accurate Timing**: Berekent besparingen wanneer pomp uitschakelt (niet inschakelt)
+## Installatie
 
-### Verbeterde Gebruikersinterface
-- **Elegant Keuzemenu**: Mooie button-gebaseerde apparaat selectie
-- **Consistente Styling**: Uniforme look-and-feel door hele applicatie
-- **Reset Functionaliteit**: Eenvoudig besparingen resetten met één klik
-- **Dynamic Display**: Toont 0W wanneer pomp uitstaat
+1. Upload alle bestanden naar `/mnt/data/tsc/` op je Toon
+2. Herstart de Toon interface  
+3. De app verschijnt als nieuwe tile op je Toon
 
-## 🔧 Installatie
+## Configuratie
 
-1. **Upload naar Toon**: Kopieer alle bestanden naar `/mnt/data/tsc/`
-2. **Configureer Apparaat**: Kies je apparaat type in instellingen
-3. **Stel IP in**: Voor Tasmota/Shelly, voer het juiste IP adres in
-4. **Test Verbinding**: Controleer of de pomp correct wordt geschakeld
+### Apparaat Types
 
-## ⚙️ Configuratie
-
-### Toon (Z-wave)
+**Toon (Z-wave)** - Originele functionaliteit
 - Selecteer "Toon" als apparaat type
 - Kies je pomp schakelaar uit de lijst
-- Geen aanvullende configuratie nodig
+- Hernoem je schakelaar naar "Pump Switch" indien nodig
 
-### Tasmota 
+**Tasmota** 
 - Selecteer "Tasmota" als apparaat type
-- Voer IP adres van je Tasmota device in (bijv. 192.168.1.100)
+- Voer IP adres van je Tasmota device in
 - Zorg dat HTTP API toegankelijk is
 
-### Shelly Plug-S Gen3
-- Selecteer "Shelly" als apparaat type
-- Voer IP adres van je Shelly device in (bijv. 192.168.1.200)
+**Shelly Plug-S Gen3** *(Nieuw in v1.0.8-enhanced)*
+- Selecteer "Shelly" als apparaat type  
+- Voer IP adres van je Shelly device in
 - Gebruikt moderne RPC API voor betrouwbare communicatie
 
-## 📊 Monitoring & Besparingen
+### Instellingen
+- **Minimale interval**: Tijd tussen pomploops wanneer verwarming uit is
+- **Looptijd**: Hoe lang de pomp draait per cyclus  
+- **Uitschakelvertraging**: Vertraging na verwarming uitschakelt
 
-### Power Monitoring
-- Realtime stroomverbruik monitoring
-- Automatische filtering van opstroom pieken
-- Gemiddelde berekening over volledige looptijd
-- Nauwkeurige euro besparingen op basis van werkelijk verbruik
+## Enhanced Features (v1.0.8)
 
-### Reset Functionaliteit
-- **Besparingen terug naar 0**: Reset alle opgeslagen besparingen
-- **Behoud Instellingen**: Apparaat configuratie blijft behouden
-- **Instant Update**: Onmiddellijke visuele bevestiging
+Deze versie bevat uitgebreide verbeteringen voor moderne smart home setups:
 
-## 🔄 API Endpoints
+### 🔌 Multi-Device Ondersteuning
+- **Shelly Gen3 RPC API**: Volledige ondersteuning voor nieuwste Shelly hardware
+- **Elegant Device Menu**: Verbeterde UI met button-gebaseerde selectie
+- **100% Backward Compatible**: Alle bestaande Toon/Tasmota functionaliteit behouden
 
-### Tasmota
-- **Status**: `http://[IP]/?m=1`
-- **Aan**: `http://[IP]/cm?cmnd=Power%20On`
-- **Uit**: `http://[IP]/cm?cmnd=Power%20Off`
+### ⚡ Intelligente Power Monitoring  
+- **Opstroom Filtering**: Negeert hoge startstroom (eerste 30 seconden)
+- **Extreme Value Filtering**: Filtert onrealistische waarden (5-500W)
+- **Power Averaging**: Nauwkeurige gemiddelde berekening over pomprun
+- **Accurate Savings**: Gecorrigeerde timing - berekent bij uitschakelen
 
-### Shelly Gen3 RPC
-- **Status**: `http://[IP]/rpc/Shelly.GetStatus`
-- **Aan**: `http://[IP]/rpc/Switch.Set?id=0&on=true`
-- **Uit**: `http://[IP]/rpc/Switch.Set?id=0&on=false`
+### 🎨 UI/UX Verbeteringen
+- **Consistente Styling**: Uniforme button design door hele app
+- **Reset Functionaliteit**: "Besparingen terug naar 0" met één klik  
+- **Dynamic Display**: Toont 0W wanneer pomp uit (ipv laatste waarde)
+- **Improved Layout**: Logische volgorde configuratie elementen
 
-## 🐛 Troubleshooting
+## API Endpoints
 
-### Geen Verbinding
-1. Controleer IP adres en netwerkconnectiviteit
-2. Zorg dat firewall HTTP toegang toestaat
-3. Test API endpoints handmatig in browser
+### Shelly Gen3 RPC *(Nieuw)*
+```
+Status: GET http://[IP]/rpc/Shelly.GetStatus
+Aan:    GET http://[IP]/rpc/Switch.Set?id=0&on=true  
+Uit:    GET http://[IP]/rpc/Switch.Set?id=0&on=false
+```
 
-### Onjuiste Power Readings
-1. Controleer of apparaat power monitoring ondersteunt
-2. Wacht 30 seconden na opstarten voor stabiele metingen
-3. Reset besparingen en start nieuwe meetperiode
+### Tasmota HTTP
+```  
+Status: GET http://[IP]/?m=1
+Aan:    GET http://[IP]/cm?cmnd=Power%20On
+Uit:    GET http://[IP]/cm?cmnd=Power%20Off
+```
 
-### Schakelaar Niet Gevonden (Toon)
-1. Hernoem je schakelaar naar "Pump Switch"
-2. Restart Toon app
-3. Controleer in device lijst
+## Troubleshooting
 
-## 📝 Changelog v1.0.8
+**Geen verbinding (Tasmota/Shelly)**
+- Controleer IP adres en netwerkconnectiviteit
+- Test API endpoints handmatig in browser
+- Zorg dat firewall HTTP toegang toestaat
 
-- ✅ Shelly Plug-S Gen3 ondersteuning toegevoegd
-- ✅ Intelligente power averaging geïmplementeerd
-- ✅ Startup current filtering (30 sec delay)
-- ✅ Extreme value filtering (5-500W)
-- ✅ Besparingen logica gecorrigeerd
-- ✅ UI consistentie verbeterd
-- ✅ Reset functionaliteit toegevoegd
-- ✅ 0W display wanneer pomp uit is
-- ✅ Backward compatibility behouden
+**Schakelaar niet gevonden (Toon)**  
+- Hernoem schakelaar naar "Pump Switch"
+- Restart Toon app en controleer device lijst
 
-## 🤝 Bijdragen
+**Onjuiste power readings**
+- Wacht 30 seconden na pomp start voor stabiele metingen  
+- Reset besparingen voor nieuwe meetperiode
+- Controleer of device power monitoring ondersteunt
 
-Contributions zijn welkom! Open een issue of pull request op GitHub.
+## Changelog
 
-## 📄 Licentie
+Zie `Changelog.txt` voor volledige versiegeschiedenis.
 
-Open source project voor de Toon community.
+## Bijdragen
+
+Contributions welkom! Open een issue of pull request.
 
 ---
 
-**Ontwikkeld door phoenix-blue** | **Enhanced by GitHub Copilot**
+**Origineel door oepi-loepi** | **Enhanced door phoenix-blue**

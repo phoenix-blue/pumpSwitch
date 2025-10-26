@@ -1,3 +1,16 @@
+1.0.8-enhanced
+- Shelly Plug-S Gen3 RPC API support added  
+- Intelligent power monitoring with startup filtering (30 sec delay)
+- Extreme value filtering for power readings (5-500W range)
+- Power averaging system for accurate savings calculation
+- Fixed savings calculation timing (calculate when pump turns OFF)
+- Enhanced UI with elegant device selection menu (Toon/Tasmota/Shelly)
+- Added reset savings functionality with improved layout
+- Fixed power display to show 0W when pump is off
+- Consistent button styling throughout application
+- 100% backward compatibility with existing Toon/Tasmota setups
+- Comprehensive documentation and troubleshooting guide
+
 1.0.8
 - Small changes
 
