@@ -1,3 +1,9 @@
+1.0.9
+- Add Shelly Gen3 RPC support
+- Calculate savings only while thermostat and pump are off
+- Add automatic and manual 10-minute pump power learning
+- Ignore duplicate thermostat state updates in pump accounting
+
 1.0.8
 - Small changes
 
@@ -24,5 +30,4 @@
 
 1.0.0
 - first production release
-
 
