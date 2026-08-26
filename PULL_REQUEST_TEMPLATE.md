@@ -65,7 +65,7 @@ function getShellypower() {
 - ✅ **Savings Logic**: Corrigeert timing van besparingsberekeningen
 
 ## 🧪 **Testing**
-- ✅ Getest met **Shelly Plug-S Gen3** (IP: 192.168.1.200)
+- ✅ Getest met **Shelly Plug-S Gen3**
 - ✅ **Backward compatibility** gevalideerd met bestaande Toon/Tasmota setups
 - ✅ **Power monitoring** accuracy geverifieerd met startup filtering
 - ✅ **UI consistency** gecontroleerd op alle schermen
